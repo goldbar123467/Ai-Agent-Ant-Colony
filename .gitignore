@@ -44,10 +44,10 @@ env/
 # Logs
 *.log
 logs/
-violations.jsonl
 
-# Data
-data/
+# Data (runtime)
+data/*
+!data/examples/
 *.db
 *.sqlite
 

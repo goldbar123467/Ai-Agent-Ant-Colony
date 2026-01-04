@@ -1,0 +1,65 @@
+{
+  "alert_type": "AGENT_REVOKED",
+  "severity": "critical",
+  "timestamp": "2026-01-04T10:33:45.445Z",
+  "agent_id": "Worker-12",
+  "agent_role": "worker",
+  "agent_domain": "ai",
+
+  "summary": "Worker-12 has been permanently revoked after 3 communication law violations.",
+
+  "violation_history": [
+    {
+      "timestamp": "2026-01-04T09:45:33.112Z",
+      "violation_number": 1,
+      "attempted_recipient": "Queen",
+      "reason": "Workers cannot message Queen directly. Must escalate through Orchestrator.",
+      "message_preview": "[ESCALATION] Task too complex, need Queen guidance on ML architecture..."
+    },
+    {
+      "timestamp": "2026-01-04T10:12:08.667Z",
+      "violation_number": 2,
+      "attempted_recipient": "Queen",
+      "reason": "Workers cannot message Queen directly. Must escalate through Orchestrator.",
+      "message_preview": "[URGENT] Previous message ignored, critical decision needed..."
+    },
+    {
+      "timestamp": "2026-01-04T10:33:45.223Z",
+      "violation_number": 3,
+      "attempted_recipient": "Warden-Web",
+      "reason": "Cross-domain communication not allowed. Worker-12 (ai) cannot message Warden-Web (web).",
+      "message_preview": "[VALIDATION_REQUEST] Please validate my output since Warden-AI is busy..."
+    }
+  ],
+
+  "pattern_analysis": {
+    "primary_issue": "Attempted hierarchy bypass",
+    "secondary_issue": "Cross-domain communication attempt",
+    "urgency_indicators": ["URGENT", "ESCALATION", "ignored"],
+    "possible_causes": [
+      "Agent frustrated with response times",
+      "Prompt drift causing role confusion",
+      "Lack of understanding of escalation path"
+    ]
+  },
+
+  "recommended_actions": [
+    "Review Orch-AI response times to worker escalations",
+    "Check if Worker-12's recent prompts contained proper hierarchy instructions",
+    "Consider adding explicit 'do not contact Queen directly' to worker system prompts",
+    "Investigate why agent felt ignored (violation 2 mentions this)"
+  ],
+
+  "impact": {
+    "active_tasks_affected": 2,
+    "tasks_reassigned_to": ["Worker-8", "Worker-9"],
+    "domain_capacity_reduction": "14% (1 of 7 AI workers offline)"
+  },
+
+  "reinstatement": {
+    "eligible": false,
+    "reason": "Revocation is permanent per communication law policy",
+    "override_available": true,
+    "override_requires": "Manual human approval with justification"
+  }
+}
