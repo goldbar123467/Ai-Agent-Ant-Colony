@@ -1,0 +1,6 @@
+[submodule "services/rag-brain"]
+	path = services/rag-brain
+	url = https://github.com/goldbar123467/AI-RAG-for-MCP-Server-and-Ai-Agents.git
+[submodule "services/agent-mail"]
+	path = services/agent-mail
+	url = https://github.com/Dicklesworthstone/mcp_agent_mail.git

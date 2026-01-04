@@ -1,0 +1,206 @@
+services:
+  # =============================================================================
+  # Infrastructure Services
+  # =============================================================================
+
+  postgres:
+    image: pgvector/pgvector:pg16
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-rag_brain}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  agent-mail:
+    build: ./services/agent-mail
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rag_brain}
+    ports:
+      - "8765:8765"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8765/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  rag-brain:
+    build: ./services/rag-brain
+    environment:
+      - DATABASE_URL=postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-rag_brain}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  # =============================================================================
+  # Queen - Strategic Commander
+  # =============================================================================
+  queen:
+    build: .
+    command: python -m src.queen.agent
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+      rag-brain:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # Scribe - Memory Writer
+  # =============================================================================
+  scribe:
+    build: .
+    command: python -m src.scribe.agent
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+      rag-brain:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # Orchestrators - Task Slicing (one per domain)
+  # =============================================================================
+  orch-web:
+    build: .
+    command: python -m src.orchestrator.agent --domain web
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  orch-ai:
+    build: .
+    command: python -m src.orchestrator.agent --domain ai
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  orch-quant:
+    build: .
+    command: python -m src.orchestrator.agent --domain quant
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # Workers - Task Execution (all 21 in one container)
+  # =============================================================================
+  workers:
+    build: .
+    command: python -m src.worker.manager
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # Wardens - Validation (one per domain)
+  # =============================================================================
+  warden-web:
+    build: .
+    command: python -m src.warden.agent --domain web
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  warden-ai:
+    build: .
+    command: python -m src.warden.agent --domain ai
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  warden-quant:
+    build: .
+    command: python -m src.warden.agent --domain quant
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+  # =============================================================================
+  # QA Reporter - Quality Assessment
+  # =============================================================================
+  qa-reporter:
+    build: .
+    command: python -m src.qa_reporter.agent
+    environment:
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - AGENT_MAIL_URL=http://agent-mail:8765
+      - RAG_BRAIN_URL=http://rag-brain:8000
+      - PROJECT_KEY=${PROJECT_KEY:-/app}
+    depends_on:
+      agent-mail:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
